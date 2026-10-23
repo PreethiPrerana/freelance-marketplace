@@ -1,0 +1,130 @@
+services:
+  identity-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: identity
+      POSTGRES_USER: ${POSTGRES_USER:-marketplace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only-change-me}
+    volumes:
+      - identity_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d identity"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  profiles-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: profiles
+      POSTGRES_USER: ${POSTGRES_USER:-marketplace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only-change-me}
+    volumes:
+      - profiles_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d profiles"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  marketplace-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: marketplace
+      POSTGRES_USER: ${POSTGRES_USER:-marketplace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only-change-me}
+    volumes:
+      - marketplace_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d marketplace"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  chat-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: chat
+      POSTGRES_USER: ${POSTGRES_USER:-marketplace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only-change-me}
+    volumes:
+      - chat_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d chat"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  identity:
+    build: ./services/identity
+    env_file: .env
+    environment:
+      SERVICE_NAME: identity
+      DB_NAME: identity
+      DB_HOST: identity-db
+      REDIS_URL: redis://redis:6379/0
+    ports: ["8001:8000"]
+    depends_on:
+      identity-db:
+        condition: service_healthy
+  profiles:
+    build: ./services/profiles
+    env_file: .env
+    environment:
+      SERVICE_NAME: profiles
+      DB_NAME: profiles
+      DB_HOST: profiles-db
+      REDIS_URL: redis://redis:6379/0
+    ports: ["8002:8000"]
+    depends_on:
+      profiles-db:
+        condition: service_healthy
+      identity:
+        condition: service_started
+  marketplace:
+    build: ./services/marketplace
+    env_file: .env
+    environment:
+      SERVICE_NAME: marketplace
+      DB_NAME: marketplace
+      DB_HOST: marketplace-db
+      REDIS_URL: redis://redis:6379/0
+    ports: ["8003:8000"]
+    depends_on:
+      marketplace-db:
+        condition: service_healthy
+      identity:
+        condition: service_started
+  chat:
+    build: ./services/chat
+    env_file: .env
+    environment:
+      SERVICE_NAME: chat
+      DB_NAME: chat
+      DB_HOST: chat-db
+      REDIS_URL: redis://redis:6379/0
+    ports: ["8004:8000"]
+    depends_on:
+      chat-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity:
+        condition: service_started
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_IDENTITY_URL: http://localhost:8001
+      VITE_PROFILES_URL: http://localhost:8002
+      VITE_MARKETPLACE_URL: http://localhost:8003
+      VITE_CHAT_URL: http://localhost:8004
+    ports: ["5173:5173"]
+    depends_on: [identity, profiles, marketplace, chat]
+volumes:
+  identity_data: {}
+  profiles_data: {}
+  marketplace_data: {}
+  chat_data: {}
