@@ -18,7 +18,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",")
-REST_FRAMEWORK = {"DEFAULT_AUTHENTICATION_CLASSES":["rest_framework_simplejwt.authentication.JWTAuthentication"],"DEFAULT_PERMISSION_CLASSES":["rest_framework.permissions.IsAuthenticated"],"DEFAULT_SCHEMA_CLASS":"drf_spectacular.openapi.AutoSchema"}
+REST_FRAMEWORK = {"DEFAULT_AUTHENTICATION_CLASSES":["core.authentication.IdentityJWTAuthentication"],"DEFAULT_PERMISSION_CLASSES":["rest_framework.permissions.IsAuthenticated"],"DEFAULT_SCHEMA_CLASS":"drf_spectacular.openapi.AutoSchema"}
 SIMPLE_JWT = {"SIGNING_KEY":os.getenv("JWT_SIGNING_KEY", SECRET_KEY),"ACCESS_TOKEN_LIFETIME":__import__('datetime').timedelta(minutes=15),"REFRESH_TOKEN_LIFETIME":__import__('datetime').timedelta(days=1),"ROTATE_REFRESH_TOKENS":True,"BLACKLIST_AFTER_ROTATION":True,"UPDATE_LAST_LOGIN":True}
 SPECTACULAR_SETTINGS = {"TITLE":os.getenv("SERVICE_NAME", "Marketplace").title()+" API", "VERSION":"0.1.0", "SERVE_INCLUDE_SCHEMA":False}
 INTERNAL_SERVICE_TOKEN = os.getenv("INTERNAL_SERVICE_TOKEN", "unsafe-local-internal-token")

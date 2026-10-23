@@ -66,7 +66,7 @@ services:
       DB_NAME: identity
       DB_HOST: identity-db
       REDIS_URL: redis://redis:6379/0
-    ports: ["8001:8000"]
+    ports: ["${BIND_IP:-0.0.0.0}:8001:8000"]
     depends_on:
       identity-db:
         condition: service_healthy
@@ -78,7 +78,7 @@ services:
       DB_NAME: profiles
       DB_HOST: profiles-db
       REDIS_URL: redis://redis:6379/0
-    ports: ["8002:8000"]
+    ports: ["${BIND_IP:-0.0.0.0}:8002:8000"]
     depends_on:
       profiles-db:
         condition: service_healthy
@@ -92,7 +92,7 @@ services:
       DB_NAME: marketplace
       DB_HOST: marketplace-db
       REDIS_URL: redis://redis:6379/0
-    ports: ["8003:8000"]
+    ports: ["${BIND_IP:-0.0.0.0}:8003:8000"]
     depends_on:
       marketplace-db:
         condition: service_healthy
@@ -106,7 +106,7 @@ services:
       DB_NAME: chat
       DB_HOST: chat-db
       REDIS_URL: redis://redis:6379/0
-    ports: ["8004:8000"]
+    ports: ["${BIND_IP:-0.0.0.0}:8004:8000"]
     depends_on:
       chat-db:
         condition: service_healthy
@@ -117,10 +117,10 @@ services:
   frontend:
     build: ./frontend
     environment:
-      VITE_IDENTITY_URL: http://localhost:8001
-      VITE_PROFILES_URL: http://localhost:8002
-      VITE_MARKETPLACE_URL: http://localhost:8003
-      VITE_CHAT_URL: http://localhost:8004
+      VITE_IDENTITY_URL: http://${PUBLIC_IP:-44.226.114.3}:8001
+      VITE_PROFILES_URL: http://${PUBLIC_IP:-44.226.114.3}:8002
+      VITE_MARKETPLACE_URL: http://${PUBLIC_IP:-44.226.114.3}:8003
+      VITE_CHAT_URL: http://${PUBLIC_IP:-44.226.114.3}:8004
     ports: ["5173:5173"]
     depends_on: [identity, profiles, marketplace, chat]
 volumes:

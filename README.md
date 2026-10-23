@@ -22,6 +22,16 @@ Docker Engine and Docker Compose v2.
 
 The frontend is a deliberately small functional starter, not a finished commercial UI. Hiring creates a contract and the frontend then creates a conversation for the hired participants. These are two separate service requests, so production implementations should add retries or an outbox/event workflow to handle partial failures. Use API endpoints and Swagger for workflows not yet surfaced in the interface.
 
+## Deploy on a server with public IP 44.226.114.3
+
+1. Copy `.env.example` to `.env` and set `PUBLIC_IP=44.226.114.3` and `BIND_IP=0.0.0.0`. Change all example secrets and the PostgreSQL password before starting.
+2. Allow inbound TCP ports `5173`, `8001`, `8002`, `8003`, and `8004` in the cloud firewall/security group and the host firewall for a quick MVP test. Do **not** open PostgreSQL (5432) or Redis (6379). Restrict source IPs to your own IP while testing if possible.
+3. Run `docker compose up --build -d`. The frontend uses the public IP for API and WebSocket URLs.
+4. Visit `http://44.226.114.3:5173`. APIs are exposed on ports 8001–8004.
+5. Verify the Compose configuration with `docker compose config` and inspect logs with `docker compose logs -f`.
+
+This direct-port setup is for development/demo only: API traffic and WebSockets are unencrypted. Before production, put Nginx or another reverse proxy in front, expose only ports 80/443, configure a domain and TLS, route REST/WebSocket traffic through the proxy, and remove public host port mappings from the Django services. `PUBLIC_IP` controls the URLs embedded into the frontend; `BIND_IP` controls the local host interfaces used for Docker port publishing. On cloud VMs where the public IP is NAT-mapped, keep `BIND_IP=0.0.0.0` and `PUBLIC_IP=44.226.114.3`.
+
 ## Main API routes
 - Identity: `POST /api/auth/register/`, `POST /api/auth/token/`, `POST /api/auth/token/refresh/`, `GET /api/me/`
 - Profiles: `GET/PUT /api/profiles/me/`, `GET /api/profiles/<uuid>/`, `GET/POST /api/portfolio/`
@@ -42,3 +52,15 @@ Each service runs `python manage.py makemigrations core` and `python manage.py m
 
 ## Product discovery / reverse engineering ethics
 Use a browser to manually observe public pages and your own account's permitted workflows. Record user goals, states, validation, navigation, and edge cases. Do not automate access in violation of site terms, bypass authentication/anti-bot controls, copy source/assets, or collect personal data. The actual internal architecture of a third-party platform cannot be inferred reliably from its UI.
+
+### Cross-service JWT identity
+
+The Identity service owns the UUID user model and issues signed JWTs containing
+`user_id`, `role`, and `email`. Profiles, Marketplace, and Chat validate the JWT
+signature with the same `JWT_SIGNING_KEY` but do not look up that UUID in their
+own Django auth tables. They use `core.authentication.IdentityJWTAuthentication`
+to expose a lightweight authenticated principal. Configure the exact same strong
+`JWT_SIGNING_KEY` in all four services. Do not use the example development key in
+production. This design assumes all services trust the Identity service's signing
+key; for stronger isolation, consider asymmetric signing and publish only the
+Identity service's public verification key to downstream services.
